@@ -1,0 +1,10 @@
+build/
+examples/
+.vscode/
+*/build
+*/*/build
+*/*.wts
+*/*.ppm
+*idea*
+*/*.plan
+*/*.jpg

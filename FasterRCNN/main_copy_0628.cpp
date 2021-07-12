@@ -19,7 +19,7 @@
 #include <algorithm>
 #include "opencv2/opencv.hpp"
 #include "../utils/pre_process.h"
-#include "../utils/trt_utils.h"
+#include "../utils/file_utils.h"
 #include "../utils/post_process.h"
 #include "../LGTPlugin/plugins/DynamicPyramidROIAlignPlugin.h"
 #include "../LGTPlugin/plugins/DynamicDelta2BboxPlugin.h"

@@ -32,6 +32,29 @@ file(GLOB OpenCV_LIBS ${OpenCV_LIB_PATH}/*.so)
 
 # message(OpenCV_LIBS:${OpenCV_LIBS})
 
+
+# 自己编译的tensor库，如infer_plugin
+# link_directories(/home/ubuntu/source_code/trt_projects/TensorRT/build)
+# set(CUSTOMIZED_TENSORRT_LIB_PATH /home/ubuntu/source_code/trt_projects/TensorRT/build)
+# file(GLOB CUSTOMIZED_TENSORRT_LIBS ${CUSTOMIZED_TENSORRT_LIB_PATH}/*.so)
+
+# TensorRT
+include_directories(/home/ubuntu/source_code/TensorRT-7.2.2.3/include)
+set(TENSORRT_LIB_PATH /home/ubuntu/source_code/TensorRT-7.2.2.3/lib)
+
+#include_directories(/usr/local/include)
+# set(TENSORRT_LIB_PATH /usr/local/lib)
+file(GLOB TensorRT_LIBS ${TENSORRT_LIB_PATH}/*.so)
+#message(TensorRT_LIBS:${TensorRT_LIBS})
+
+
+
+
+
+# set(TRT_PLUGIN_LIB_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../TensorRT/build)
+# file(GLOB TRT_PLUGIN_LIBS ${TRT_PLUGIN_LIB_PATH}/libnvinfer_plugin_debug.so)
+
+
 # CUDA
 #set(CUDA_TOOLKIT_ROOT_DIR /usr/local/cuda-9.0)
 find_package(CUDA REQUIRED)
@@ -47,22 +70,6 @@ link_directories(
        /usr/local/cuda-11.0/lib64
 )
 
-# TensorRT
-include_directories(/home/ubuntu/source_code/TensorRT-7.2.2.3/include)
-set(TENSORRT_LIB_PATH /home/ubuntu/source_code/TensorRT-7.2.2.3/lib)
-#include_directories(/usr/local/include)
-# set(TENSORRT_LIB_PATH /usr/local/lib)
-file(GLOB TensorRT_LIBS ${TENSORRT_LIB_PATH}/*.so)
-#message(TensorRT_LIBS:${TensorRT_LIBS})
-
-
-# add_subdirectory(../LGTPlugin)
-
-
-
-# set(TRT_PLUGIN_LIB_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../TensorRT/build)
-# file(GLOB TRT_PLUGIN_LIBS ${TRT_PLUGIN_LIB_PATH}/libnvinfer_plugin_debug.so)
-
 add_library(common_shared SHARED
        ${COMMON_DIR}/getOptions.cpp
        ${COMMON_DIR}/logger.cpp
@@ -72,9 +79,9 @@ add_library(common_shared SHARED
        ${COMMON_DIR}/sampleReporting.cpp)
 
 
-# set (EXTRA_LIBS ${EXTRA_LIBS} FasterRCNNKernels)
+
 file(GLOB EXTRA_LIBS ../build/LGTPlugin/*.so)
-# message(EXTRA_LIBS:${EXTRA_LIBS})
+
 
 file(GLOB SOURCE
             main.cpp
@@ -85,12 +92,14 @@ add_executable(${PROJECT_NAME} ${SOURCE})
 
 target_link_libraries(${PROJECT_NAME}
        common_shared
+       # ${CUSTOMIZED_TENSORRT_LIBS}
        ${TensorRT_LIBS}
        libcublas.so libcudart.so libnvrtc.so
        # libopencv_core.so libopencv_highgui.so libopencv_imgproc.so libopencv_imgcodecs.so
 #        LIBS
        ${OpenCV_LIBS}
        ${EXTRA_LIBS}
+       
        )
 
 #include_directories(

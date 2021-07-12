@@ -14,7 +14,7 @@ namespace
 const char* DYNAMICPDELTA2BBOX_PLUGIN_VERSION{"1"};
 const char* DYNAMICPDELTA2BBOX_PLUGIN_NAME{"DynamicDelta2Bbox_TRT"};
 } // namespace
-REGISTER_TENSORRT_PLUGIN(DynamicDelta2BboxPluginCreator);
+// REGISTER_TENSORRT_PLUGIN(DynamicDelta2BboxPluginCreator);
 
 PluginFieldCollection DynamicDelta2BboxPluginCreator::mFC{};
 std::vector<PluginField> DynamicDelta2BboxPluginCreator::mPluginAttributes;
@@ -224,7 +224,7 @@ int DynamicDelta2Bbox::enqueue(const PluginTensorDesc* inputDesc, const PluginTe
 
 size_t DynamicDelta2Bbox::getSerializationSize() const
 {
-    return 0;
+    return sizeof(int) * 2;
 };
 
 void DynamicDelta2Bbox::serialize(void* buffer) const
@@ -314,11 +314,11 @@ void DynamicDelta2Bbox:: configurePlugin(const DynamicPluginTensorDesc* in, int 
 }    
 
 // Attach the plugin object to an execution context and grant the plugin the access to some context resource.
-void DynamicDelta2Bbox::attachToContext(
-    cudnnContext* cudnnContext, cublasContext* cublasContext, IGpuAllocator* gpuAllocator)
-{
-}
+// void DynamicDelta2Bbox::attachToContext(
+//     cudnnContext* cudnnContext, cublasContext* cublasContext, IGpuAllocator* gpuAllocator)
+// {
+// }
 
-// Detach the plugin object from its execution context.
-void DynamicDelta2Bbox::detachFromContext() {}
+// // Detach the plugin object from its execution context.
+// void DynamicDelta2Bbox::detachFromContext() {}
 

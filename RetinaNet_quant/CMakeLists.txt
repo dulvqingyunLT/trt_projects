@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.12)
-project(RetinaNet)
+project(RetinaNetQuant)
 
 set(CMAKE_CXX_STANDARD 14)
 set( CMAKE_BUILD_TYPE "Debug" )
@@ -76,8 +76,8 @@ add_library(common_shared SHARED
 file(GLOB SOURCE
        #      sampleFasterRCNN.cpp
             main.cpp
-            retinanet.cpp
-              # retinanet_int8.cpp
+       #      retinanet.cpp
+              retinanet_int8.cpp
             # FasterRCNN.cpp
             # plugin/gatherProposalPluginDynamic.cpp
             # plugin/Delta2BboxPluginDynamic.cpp

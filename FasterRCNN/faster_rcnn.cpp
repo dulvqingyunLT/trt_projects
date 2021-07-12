@@ -1,8 +1,8 @@
 
 #include "faster_rcnn.h"
 #include "../utils/pre_process.h"
-#include "../utils/trt_utils.h"
-
+#include "../utils/file_utils.h"
+#include "../utils/calibrator.hpp"
 
 namespace LGT
 {
@@ -55,6 +55,7 @@ bool FasterRCNN::build()
     // assert(mOutput1Dims.nbDims == 3);
 
     // serialize engine
+    if(mParams.saveEngine)
     {
 
        std::ofstream p("Faster_RCNN.plan", std::ios::binary);
@@ -101,12 +102,29 @@ std::vector<ITensor*>  FasterRCNN::roiAlignBuild(SampleUniquePtr<nvinfer1::INetw
     batchedRPNNMSPlugin_attr.emplace_back(PluginField("clipBoxes", &rpn_clipBoxes, PluginFieldType::kINT32, 1));
     batchedRPNNMSPlugin_attr.emplace_back(PluginField("scoreBits", &rpn_scoreBits, PluginFieldType::kINT32, 1));
     
-    PluginFieldCollection *pluginFC = new PluginFieldCollection();
+
+    // 下面的为适配新版nms plugin
+    // NMSParameters nmsPara;
+    // nmsPara.shareLocation = rpn_shareLocation;
+    // nmsPara.backgroundLabelId = rpn_backgroundLabelId;
+    // nmsPara.numClasses = rpn_numClasses;
+    // nmsPara.topK = rpn_topK;
+    // nmsPara.keepTopK = rpn_keepTopK;
+    // nmsPara.scoreThreshold = rpn_scoreThreshold;
+    // nmsPara.iouThreshold = rpn_iouThreshold;
+    // nmsPara.isNormalized = rpn_isNormalized;
+    // batchedRPNNMSPlugin_attr.emplace_back(PluginField("clipBoxes", &rpn_clipBoxes, PluginFieldType::kINT32, 1));
+    // batchedRPNNMSPlugin_attr.emplace_back(PluginField("scoreBits", &rpn_scoreBits, PluginFieldType::kINT32, 1));    
+
+
+
+    std::unique_ptr< PluginFieldCollection > pluginFC(new PluginFieldCollection());    
+    // PluginFieldCollection *pluginFC = new PluginFieldCollection();
     pluginFC->nbFields = batchedRPNNMSPlugin_attr.size();
     pluginFC->fields = batchedRPNNMSPlugin_attr.data();
 
     auto creator = getPluginRegistry()->getPluginCreator("BatchedNMSDynamic_TRT", "1");
-    auto pluginObj = creator->createPlugin("BatchedPRNNMS",pluginFC); //自己给该layer取的名字
+    auto pluginObj = creator->createPlugin("BatchedPRNNMS",pluginFC.get()); //自己给该layer取的名字
     ITensor* inputRPNNMSTensors[] = {rois, roi_scores};
 
     IPluginV2Layer* RPN_NMS_layer = network->addPluginV2(inputRPNNMSTensors, 2, *pluginObj);
@@ -125,11 +143,13 @@ std::vector<ITensor*>  FasterRCNN::roiAlignBuild(SampleUniquePtr<nvinfer1::INetw
 
     roialign_attr.emplace_back(PluginField("pooled_size", &poolSize, PluginFieldType::kINT32, 1));
     roialign_attr.emplace_back(PluginField("input_size", &inputSize, PluginFieldType::kINT32, 1));
-    pluginFC = new PluginFieldCollection();
-    pluginFC->nbFields = roialign_attr.size();
-    pluginFC->fields = roialign_attr.data();
 
-    pluginObj = creator->createPlugin("CustomizedPyramidROIAlign",pluginFC);
+    std::unique_ptr< PluginFieldCollection > pluginROIFC(new PluginFieldCollection());    
+    // pluginFC = new PluginFieldCollection();
+    pluginROIFC->nbFields = roialign_attr.size();
+    pluginROIFC->fields = roialign_attr.data();
+
+    pluginObj = creator->createPlugin("CustomizedPyramidROIAlign",pluginROIFC.get());
 
     ITensor* inputROIAlignTensors[] = {RPN_NMS_layer->getOutput(1), fp0, fp1, fp2, fp3};
 
@@ -149,8 +169,8 @@ std::vector<ITensor*>  FasterRCNN::roiAlignBuild(SampleUniquePtr<nvinfer1::INetw
     // RPN_NMS_layer->getOutput(1)->setName("nmsed_rpns");
     // network->markOutput(*RPN_NMS_layer->getOutput(1));
 
-    // PyramidROIAlign_layer->getOutput(0)->setName("roiAlign");
-    // network->markOutput(*PyramidROIAlign_layer->getOutput(0));
+    PyramidROIAlign_layer->getOutput(0)->setName("roiAlign");
+    network->markOutput(*PyramidROIAlign_layer->getOutput(0));
 
     std::vector<ITensor*> instances;
     instances.push_back(RPN_NMS_layer->getOutput(1));
@@ -206,7 +226,7 @@ std::vector<ITensor*> FasterRCNN:: rcnnBuild(SampleUniquePtr<nvinfer1::INetworkD
     auto dim_output_cls_layer = cls_layer->getOutput(0)->getDimensions();
     auto* reshapeLayer_scores = network->addShuffle(*cls_layer->getOutput(0));
     reshapeLayer_scores->setReshapeDimensions(
-        Dims3{-1, mParams.roiCount, dim_output_cls_layer.d[2]});      //(-1, 1000, 81)    
+        Dims3{-1, rpn_keepTopK, dim_output_cls_layer.d[2]});      //(-1, 1000, 81)    
     
 
     ISoftMaxLayer* softmax_layer = network->addSoftMax(*reshapeLayer_scores->getOutput(0));
@@ -215,7 +235,7 @@ std::vector<ITensor*> FasterRCNN:: rcnnBuild(SampleUniquePtr<nvinfer1::INetworkD
 
 
     auto score_slice_layer_0 = network->addSlice(*softmax_layer->getOutput(0), Dims3{ 0, 0, 0},
-        Dims3{ mParams.batchSize, mParams.roiCount, dim_output_softmax_layer.d[2]-1}, Dims3{ 1, 1, 1});
+        Dims3{ mParams.batchSize, rpn_keepTopK, dim_output_softmax_layer.d[2]-1}, Dims3{ 1, 1, 1});
 
 
     //output_bboxes (-1,1000,320,1,1)
@@ -232,7 +252,7 @@ std::vector<ITensor*> FasterRCNN:: rcnnBuild(SampleUniquePtr<nvinfer1::INetworkD
     auto* reshapeLayer_delta = network->addShuffle(*reg_layer->getOutput(0));
 
     reshapeLayer_delta->setReshapeDimensions(
-           Dims4{-1, mParams.roiCount, dim_output_bbox.d[2]/4, 4});
+           Dims4{-1, rpn_keepTopK, dim_output_bbox.d[2]/4, 4});
            
     auto dim_output_reshapeLayer_delta = reshapeLayer_delta->getOutput(0)->getDimensions();
     
@@ -364,14 +384,15 @@ bool FasterRCNN::constructNetwork(SampleUniquePtr<nvonnxparser::IParser>& parser
     // Set formats and data types of inputs
 
     auto input = network->getInput(0);
+    mParams.inputTensorNames.push_back(input->getName());
 
     //若要设置成支持动态尺寸，需要在pytorch导模型时进行设置。
 
     profile->setDimensions(input->getName(), OptProfileSelector::kMIN, Dims4(1, 3, inputSize, inputSize));
 
-    profile->setDimensions(input->getName(), OptProfileSelector::kOPT, Dims4(1, 3, inputSize, inputSize));
+    profile->setDimensions(input->getName(), OptProfileSelector::kOPT, Dims4(8, 3, inputSize, inputSize));
 
-    profile->setDimensions(input->getName(), OptProfileSelector::kMAX, Dims4(1, 3, inputSize, inputSize));
+    profile->setDimensions(input->getName(), OptProfileSelector::kMAX, Dims4(16, 3, inputSize, inputSize));
     config->addOptimizationProfile(profile);
 
    if (mParams.fp16)
@@ -390,6 +411,13 @@ bool FasterRCNN::constructNetwork(SampleUniquePtr<nvonnxparser::IParser>& parser
     //    config->setInt8Calibrator(calibrator.get());
 
     //    samplesCommon::setAllTensorScales(network.get(), 127.0f, 127.0f);
+
+        std::cout << "Your platform support int8: " << (builder->platformHasFastInt8() ? "true" : "false") << std::endl;
+        assert(builder->platformHasFastInt8());
+        config->setFlag(BuilderFlag::kINT8);
+        Int8EntropyCalibrator2* calibrator = new Int8EntropyCalibrator2(mParams.batchSize, inputSize, inputSize, "/home/ubuntu/data/coco/val2017/",
+        "int8calib_fasterrcnn.table", input->getName());
+        config->setInt8Calibrator(calibrator);   
 
    }
 
@@ -460,7 +488,7 @@ bool FasterRCNN::infer()
     // }
 
     // Read the input data into the managed buffers
-    assert(mParams.inputTensorNames.size() == 1);
+    // assert(mParams.inputTensorNames.size() == 1);
     if (!processInput(buffers))
     {
         return false;
@@ -519,7 +547,8 @@ bool FasterRCNN::processInput(const samplesCommon::BufferManager& buffers)
     const int inputW = mInputDims.d[3];
     const int batchSize = mParams.batchSize;
 
-    float* hostDataBuffer = static_cast<float*>(buffers.getHostBuffer("input"));
+    // float* hostDataBuffer = static_cast<float*>(buffers.getHostBuffer("input"));
+    float* hostDataBuffer = static_cast<float*>(buffers.getHostBuffer(mParams.inputTensorNames[0]));    
    for(size_t i =0, volImg = inputC * inputH * inputW; i<mParams.batchSize; i++)
    {
 
@@ -648,7 +677,7 @@ bool FasterRCNN::verifyOutput(const samplesCommon::BufferManager& buffers)
 
 /***
     float* rois = static_cast<float*>(buffers.getHostBuffer("rois"));
-    for(int i =0; i< mParams.roiCount; i++){//取前1000个
+    for(int i =0; i< rpn_keepTopK; i++){//取前1000个
         for(int k =0; k< 4; k++)
             std::cout<<rois[i*4 + k]<<" ";
         std::cout<<std::endl;

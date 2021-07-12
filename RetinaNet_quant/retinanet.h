@@ -46,9 +46,9 @@ static constexpr int inputSize = 384;
 static constexpr float img_mean[3]={103.53, 116.28, 123.675,};// BGR order
 static constexpr float img_std[3]={57.375, 57.12, 58.395 };// BGR order
 
-static  std::vector<std::string> imageList = {"000000397133.jpg"};//测试用
+// static  std::vector<std::string> imageList = {"000000397133.jpg"};//测试用
 // static  std::vector<std::string> imageList = {"000000037777.jpg"};//测试用
-// static  std::vector<std::string> imageList = {"000000397133.jpg", "000000037777.jpg"};//测试用
+static  std::vector<std::string> imageList = {"000000397133.jpg", "000000037777.jpg"};//测试用
 const std::vector<std::string> classes{
             "person", "bicycle", "car", "motorcycle", "airplane", "bus",
             "train", "truck", "boat", "traffic light", "fire hydrant",

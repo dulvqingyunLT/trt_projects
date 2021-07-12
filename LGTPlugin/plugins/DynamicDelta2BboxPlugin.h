@@ -69,11 +69,11 @@ public:
     // bool isOutputBroadcastAcrossBatch(int outputIndex, const bool* inputIsBroadcasted, int nbInputs) const override;
     // bool canBroadcastInputAcrossBatch(int inputIndex) const override;
 
-    void attachToContext(
-        cudnnContext* cudnnContext, cublasContext* cublasContext, IGpuAllocator* gpuAllocator) override;
+    // void attachToContext(
+    //     cudnnContext* cudnnContext, cublasContext* cublasContext, IGpuAllocator* gpuAllocator) override;
 
 
-    void detachFromContext() override;
+    // void detachFromContext() override;
 
 private:
     void check_valid_inputs(const nvinfer1::DimsExprs* inputs, int nbInputDims);

@@ -50,7 +50,10 @@ list(APPEND CUDA_NVCC_FLAGS "-std=c++14")
 source_group("Include" FILES ${CURRENT_HEADERS})
 source_group("Source" FILES ${CURRENT_SOURCES})
 
-cuda_add_library(${PROJECT_NAME} SHARED  ${CURRENT_SOURCES} ${TensorRT_LIBS})
+cuda_add_library(${PROJECT_NAME} SHARED  
+${CURRENT_SOURCES} 
+# ${TensorRT_LIBS}
+)
 
 # install(TARGETS ${PROJECT_NAME})
 include(GNUInstallDirs)

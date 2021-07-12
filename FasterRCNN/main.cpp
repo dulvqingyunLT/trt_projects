@@ -27,7 +27,7 @@ FasterRCNNParams initializeSampleParams(const samplesCommon::Args& args)
     }
     params.onnxFileName = "faster_rcnn_stageone_test_new.onnx";
     params.rcnnWeightsFile = "rcnn.wts";
-    params.inputTensorNames.push_back("input");
+    // params.inputTensorNames.push_back("input");
     // params.inputTensorNames.push_back("im_info");
     params.batchSize = 1;
     // params.outputTensorNames.push_back("boxes");
@@ -35,10 +35,13 @@ FasterRCNNParams initializeSampleParams(const samplesCommon::Args& args)
     // params.outputTensorNames.push_back("rois");
     params.dlaCore = args.useDLACore;
 
-    params.outputClsSize = 80;
-    params.nmsMaxOut
-        = 300; // This value needs to be changed as per the nmsMaxOut value set in RPROI plugin parameters in prototxt
-    params.roiCount = 1000;//36828;
+    // params.outputClsSize = 80;
+    // params.nmsMaxOut
+    //     = 300; // This value needs to be changed as per the nmsMaxOut value set in RPROI plugin parameters in prototxt
+    // params.roiCount = 1000;//36828;
+    params.int8 = true;
+    params.fp16 = false;
+    params.saveEngine = true;
     return params;
 }
 
@@ -82,6 +85,8 @@ int main(int argc, char** argv)
     auto sampleTest = sample::gLogger.defineTest(gSampleName, argc, argv);
 
     sample::gLogger.reportTestStart(sampleTest);
+    
+    // sample::setReportableSeverity(ILogger::Severity::kVERBOSE);
 
     FasterRCNN sample(initializeSampleParams(args));
 

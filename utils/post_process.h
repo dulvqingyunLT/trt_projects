@@ -29,15 +29,11 @@ namespace LGT{
             
             float xx1, yy1, xx2, yy2;
             float area1, area2;
+            bboxes.erase(std::remove_if(bboxes.begin(), bboxes.end(), [](BBox b){return b.score<scoreThreshold;}), bboxes.end());
             std::sort(bboxes.begin(), bboxes.end(), [](BBox b1, BBox b2){return b1.score>b2.score;});
             std::vector<BBox>::iterator ite1,ite2;
-            for (ite1 = bboxes.begin(); ite1 != bboxes.end();)
+            for (ite1 = bboxes.begin(); ite1 != bboxes.end(); ite1 ++)
             {
-                if(ite1->score <= score_threshold)
-                {
-                    ite1 = bboxes.erase(ite1);
-                    continue;
-                }
                 area1 = get_area(*ite1);
                 for(ite2 = ite1 + 1; ite2!=bboxes.end();)
                 {
@@ -62,8 +58,6 @@ namespace LGT{
                     }
                    
                 }
-                
-                 ite1 ++;
             }
 
         }

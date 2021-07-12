@@ -14,7 +14,7 @@ namespace
 const char* DYNAMICPYRAMIDROIALGIN_PLUGIN_VERSION{"1"};
 const char* DYNAMICPYRAMIDROIALGIN_PLUGIN_NAME{"DynamicPyramidROIAlign_TRT"};
 } // namespace
-REGISTER_TENSORRT_PLUGIN(DynamicPyramidROIAlignPluginCreator);
+// REGISTER_TENSORRT_PLUGIN(DynamicPyramidROIAlignPluginCreator);
 
 PluginFieldCollection DynamicPyramidROIAlignPluginCreator::mFC{};
 std::vector<PluginField> DynamicPyramidROIAlignPluginCreator::mPluginAttributes;
@@ -65,7 +65,11 @@ IPluginV2DynamicExt* DynamicPyramidROIAlignPluginCreator::createPlugin(const cha
 
 IPluginV2DynamicExt* DynamicPyramidROIAlignPluginCreator::deserializePlugin(const char* name, const void* data, size_t length) noexcept
 {
-    return new DynamicPyramidROIAlign(data, length);
+   
+
+    auto* plugin = new DynamicPyramidROIAlign(data, length);
+    plugin->setPluginNamespace(mNamespace.c_str());
+    return plugin;
 };
 
 
@@ -152,12 +156,12 @@ bool DynamicPyramidROIAlign:: supportsFormatCombination(
 ;
 const char* DynamicPyramidROIAlign::getPluginType() const
 {
-    return "DynamicPyramidROIAlign_TRT";
+    return DYNAMICPYRAMIDROIALGIN_PLUGIN_NAME;
 };
 
 const char* DynamicPyramidROIAlign::getPluginVersion() const
 {
-    return "1";
+    return DYNAMICPYRAMIDROIALGIN_PLUGIN_VERSION;
 };
 
 IPluginV2DynamicExt* DynamicPyramidROIAlign::clone() const noexcept
@@ -281,7 +285,7 @@ int DynamicPyramidROIAlign::enqueue(const PluginTensorDesc* inputDesc, const Plu
 
 size_t DynamicPyramidROIAlign::getSerializationSize() const
 {
-    return sizeof(int) * 2 + sizeof(int) * 3 + sizeof(float) + sizeof(int) * 2 * 4;
+    return sizeof(int) * 2 + sizeof(int) * 4 + sizeof(float) + sizeof(int) * 2 * 4;
 };
 
 void DynamicPyramidROIAlign::serialize(void* buffer) const
@@ -384,11 +388,11 @@ void DynamicPyramidROIAlign:: configurePlugin(const DynamicPluginTensorDesc* in,
 }    
 
 // Attach the plugin object to an execution context and grant the plugin the access to some context resource.
-void DynamicPyramidROIAlign::attachToContext(
-    cudnnContext* cudnnContext, cublasContext* cublasContext, IGpuAllocator* gpuAllocator)
-{
-}
+// void DynamicPyramidROIAlign::attachToContext(
+//     cudnnContext* cudnnContext, cublasContext* cublasContext, IGpuAllocator* gpuAllocator)
+// {
+// }
 
-// Detach the plugin object from its execution context.
-void DynamicPyramidROIAlign::detachFromContext() {}
+// // Detach the plugin object from its execution context.
+// void DynamicPyramidROIAlign::detachFromContext() {}
 

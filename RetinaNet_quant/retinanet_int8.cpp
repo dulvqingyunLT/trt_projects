@@ -1,6 +1,8 @@
 #include "retinanet.h"
 #include "../utils/pre_process.h"
 #include "../utils/calibrator.hpp"
+#include "../utils/post_process.h"
+#include <string>
 
 namespace LGT
 {
@@ -55,7 +57,7 @@ bool RetinaNet::build()
     if(mParams.saveEngine)
     {
 
-       std::ofstream p("RetinaNet.plan", std::ios::binary);
+       std::ofstream p("RetinaNet_int8.plan", std::ios::binary);
        if (!p)
        {
            return false;
@@ -72,7 +74,6 @@ bool RetinaNet::build()
        p.close();
     }
 
-    // network->destroy();
     return true;
 }
 
@@ -95,16 +96,18 @@ bool RetinaNet::constructNetwork(SampleUniquePtr<nvonnxparser::IParser>& parser,
     auto input = network->getInput(0);
     mParams.inputTensorNames.push_back(input->getName());
 
+
+
     //若要设置成支持动态尺寸，需要在pytorch导模型时进行设置。
 
     profile->setDimensions(input->getName(), OptProfileSelector::kMIN, Dims4(1,3,inputSize,inputSize));
 
-    profile->setDimensions(input->getName(), OptProfileSelector::kOPT, Dims4(8,3,inputSize,inputSize));
+    profile->setDimensions(input->getName(), OptProfileSelector::kOPT, Dims4(1,3,inputSize,inputSize));
 
-    profile->setDimensions(input->getName(), OptProfileSelector::kMAX, Dims4(16,3,inputSize,inputSize));
+    profile->setDimensions(input->getName(), OptProfileSelector::kMAX, Dims4(1,3,inputSize,inputSize));
     config->addOptimizationProfile(profile);
 
-    std::unique_ptr<IInt8Calibrator> calibrator;
+    // std::unique_ptr<IInt8Calibrator> calibrator;
 
     if (mParams.fp16)
     {
@@ -127,6 +130,7 @@ bool RetinaNet::constructNetwork(SampleUniquePtr<nvonnxparser::IParser>& parser,
         std::cout << "Your platform support int8: " << (builder->platformHasFastInt8() ? "true" : "false") << std::endl;
         assert(builder->platformHasFastInt8());
         config->setFlag(BuilderFlag::kINT8);
+        config->setCalibrationProfile(profile);
         Int8EntropyCalibrator2* calibrator = new Int8EntropyCalibrator2(mParams.batchSize, inputSize, inputSize, "/home/ubuntu/data/coco/val2017/",
         "int8calib_retianet.table", input->getName());
         config->setInt8Calibrator(calibrator);
@@ -134,13 +138,13 @@ bool RetinaNet::constructNetwork(SampleUniquePtr<nvonnxparser::IParser>& parser,
     }
 
     builder->setMaxBatchSize(mParams.batchSize);
-    config->setMaxWorkspaceSize(1_GiB);
+    config->setMaxWorkspaceSize(4_GiB);
     samplesCommon::enableDLA(builder.get(), config.get(), mParams.dlaCore);
 
 
 
 
-    
+/***    
     std::vector<PluginField> batchedNMSPlugin_attr;
     batchedNMSPlugin_attr.emplace_back(PluginField("shareLocation", &shareLocation, PluginFieldType::kINT32, 1));
     batchedNMSPlugin_attr.emplace_back(PluginField("backgroundLabelId", &backgroundLabelId, PluginFieldType::kINT32, 1));
@@ -153,15 +157,14 @@ bool RetinaNet::constructNetwork(SampleUniquePtr<nvonnxparser::IParser>& parser,
     batchedNMSPlugin_attr.emplace_back(PluginField("clipBoxes", &clipBoxes, PluginFieldType::kINT32, 1));
     batchedNMSPlugin_attr.emplace_back(PluginField("scoreBits", &scoreBits, PluginFieldType::kINT32, 1));
     
-    std::unique_ptr< PluginFieldCollection > pluginFC(new PluginFieldCollection());
-    // PluginFieldCollection *pluginFC = new PluginFieldCollection();
+    PluginFieldCollection *pluginFC = new PluginFieldCollection();
     pluginFC->nbFields = batchedNMSPlugin_attr.size();
     pluginFC->fields = batchedNMSPlugin_attr.data();
 
     // nvinfer1::REGISTER_TENSORRT_PLUGIN(BatchedNMSDynamicPluginCreator);
 
     auto creator = getPluginRegistry()->getPluginCreator("BatchedNMSDynamic_TRT", "1");
-    IPluginV2 *pluginObj = creator->createPlugin("BatchedNMS",pluginFC.get()); //自己给该layer取的名字
+    IPluginV2 *pluginObj = creator->createPlugin("BatchedNMS",pluginFC); //自己给该layer取的名字
 
 
     ITensor* bboxes = network->getOutput(0); //[batch,26761,1,4]
@@ -186,23 +189,9 @@ bool RetinaNet::constructNetwork(SampleUniquePtr<nvonnxparser::IParser>& parser,
 
     NMS_layer->getOutput(3)->setName("nmsed_classes");
     network->markOutput(*NMS_layer->getOutput(3));    
+***/
 
 
-    // ITensor* bboxes = network->getOutput(0); //[batch,26761,4]
-    // ITensor* scores = network->getOutput(1);  //[batch,26761,80]
-    
-    // const int num_dims = network->getOutput(1)->getDimensions().nbDims;
-    // const uint32_t reduce_axes_cls = 1 << (num_dims - 1);
-    // ITopKLayer* max_class_layer = network->addTopK(*network->getOutput(1), TopKOperation::kMAX, 1, reduce_axes_cls); 
-    // ITensor* filtered_score = max_class_layer->getOutput(0); //[batch,27671,1]
- 
-    //  const uint32_t reduce_axes_index = (num_dims - 1);
-
-    // ITopKLayer* topK_filtered_layer = network->addTopK(*filtered_score, TopKOperation::kMAX, mParams.nmsMaxOut, reduce_axes_index);//最后一个参数是bitmask
-
-    // ITensor* filtered_index = topK_filtered_layer->getOutput(1);
-
-    // auto dim7 = filtered_index->getDimensions();
 
 
     return true;
@@ -229,7 +218,7 @@ bool RetinaNet::infer()
 
     context_1->setOptimizationProfile(0);
 
-    context_1->setBindingDimensions(0, Dims4(mParams.batchSize, 3, 384, 384));
+    context_1->setBindingDimensions(0, Dims4(mParams.batchSize, 3, inputSize, inputSize));
 
     if (!context_1->allInputDimensionsSpecified())
 
@@ -242,6 +231,13 @@ bool RetinaNet::infer()
 
 
     samplesCommon::BufferManager buffers(mEngine, mParams.batchSize,context_1.get());
+
+    for (int i = 0; i < mEngine->getNbBindings(); i++)
+    {
+        Dims dim = context_1->getBindingDimensions(i);
+        if(dim.nbDims == 4 && std::string(mEngine->getBindingName(i)) == "results" )
+            mParams.roiCount = dim.d[1];
+    }
 
     // Create RAII buffer manager object
     // samplesCommon::BufferManager buffers(mEngine, mParams.batchSize);
@@ -387,86 +383,109 @@ bool RetinaNet::verifyOutput(const samplesCommon::BufferManager& buffers)
     // const int outputBBoxSize = mParams.outputClsSize * 4;
 
     // const float* imInfo = static_cast<const float*>(buffers.getHostBuffer("input"));
-    const int* numDetections = static_cast<const int*>(buffers.getHostBuffer("num_detections"));
-    float* nmsedBoxes = static_cast<float*>(buffers.getHostBuffer("nmsed_boxes"));
-    float* nmsedScores = static_cast<float*>(buffers.getHostBuffer("nmsed_scores"));
-    float* nmsedClasses = static_cast<float*>(buffers.getHostBuffer("nmsed_classes"));    
+    // const int* numDetections = static_cast<const int*>(buffers.getHostBuffer("num_detections"));
+    // float* nmsedBoxes = static_cast<float*>(buffers.getHostBuffer("nmsed_boxes"));
+    // float* nmsedScores = static_cast<float*>(buffers.getHostBuffer("nmsed_scores"));
+    // float* nmsedClasses = static_cast<float*>(buffers.getHostBuffer("nmsed_classes"));    
 
-    // const float* boxes = static_cast<const float*>(buffers.getHostBuffer("boxes"));
+    // const float* deltas = static_cast<const float*>(buffers.getHostBuffer("boxes"));
     // const float* clsProbs = static_cast<const float*>(buffers.getHostBuffer("scores"));
+    // const float* anchors = static_cast<const float*>(buffers.getHostBuffer("anchors"));
 
-
-
-
-    // float* rois = static_cast<float*>(buffers.getHostBuffer("rois"));
-
-
-    // Unscale back to raw image space
-    // for (int i = 0; i < batchSize; ++i)
+    // int roiCount =1000;
+    // assert(mParams.anchorCount != 0);
+    // std::vector<LGT::spanner::BBox>bbox(mParams.batchSize * mParams.anchorCount * numClasses);    
+    // LGT::spanner:: delta2bbox(mParams.batchSize, mParams.anchorCount, inputSize, inputSize, numClasses,  anchors, clsProbs,
+    //     deltas, bbox.data());
+    
+    // for(int i =start; i<end; i++)
     // {
-    //     auto numBoxes = numDetections[i];
-    //     for (int j = 0; j < numBoxes * 4 && mImgInfo.data()[i * 3 + 2] != 1;  ++j)
+    //     for(int j = 0; j<numClasses; j++)
     //     {
-    //         nmsedBoxes[j] /= mImgInfo[i * 3 + 2];
+    //         LGT::CV::BBox& one_bbox = bbox[i * numClasses + j];
+    //         std::cout<<one_bbox.x1<<" "<<one_bbox.y1<<" "<<one_bbox.x2<<" "<<one_bbox.y2<<" "<<std::endl;
     //     }
     // }
 
-    // std::vector<float> predBBoxes(batchSize * nmsMaxOut * outputBBoxSize, 0);
-    // bboxTransformInvAndClip(rois, deltas, predBBoxes.data(), mImgInfo, batchSize, nmsMaxOut, outputClsSize);
+    assert(mParams.roiCount > 0);
+    const float* results = static_cast<const float*>(buffers.getHostBuffer("results"));
+    std::vector<std::vector<std::vector<LGT::spanner::BBox>>> batched_bboxes;
+    for(int i = 0; i < mParams.batchSize; i++)
+    {
+        std::vector<std::vector<LGT::spanner::BBox>> bboxes;
+        for ( int j = 0; j< numClasses; j++)
+        {
 
-    // const float nmsThreshold = 0.3f;
-    // const float score_threshold = 0.8f;
-    // const std::vector<std::string> classes{"background", "aeroplane", "bicycle", "bird", "boat", "bottle", "bus", "car",
-    //     "cat", "chair", "cow", "diningtable", "dog", "horse", "motorbike", "person", "pottedplant", "sheep", "sofa",
-    //     "train", "tvmonitor"};
+            std::vector<LGT::spanner::BBox>class_bbox;
+
+            for (int k =0; k< mParams.roiCount; k++)
+            {
+                float x1 = results[i * mParams.roiCount * numClasses * 5  + k * numClasses * 5 + j * 5 + 0];
+                float y1 = results[i * mParams.roiCount * numClasses * 5  + k * numClasses * 5 + j * 5 + 1];
+                float x2 = results[i * mParams.roiCount * numClasses * 5  + k * numClasses * 5 + j * 5 + 2];
+                float y2 = results[i * mParams.roiCount * numClasses * 5  + k * numClasses * 5 + j * 5 + 3];
+                float sc = results[i * mParams.roiCount * numClasses * 5  + k * numClasses * 5 + j * 5 + 4];
+
+                class_bbox.push_back( {x1, y1, x2, y2, sc} );
+            }
+     
+            class_nms(class_bbox, 0.5, 0.1);
+            // if(class_bbox.size())
+            // {
+            //     bboxes.push_back(class_bbox);
+            //     for(auto ele : class_bbox)
+            //     {
+            //         cout<<"class:"<<classes[j]<<" "<<ele.x1<<" "<<ele.y1<<" "<<ele.x2<<" "
+            //         <<ele.y2<<" "<<ele.score<<std::endl;
+            //     }
+            // }
+            bboxes.emplace_back(class_bbox);
+                
+        }
+        batched_bboxes.emplace_back(bboxes);
+    }
+
 
 
     for (int i = 0; i < batchSize; ++i)
     {
-        int numBoxes = numDetections[i];
+
         cv::Mat srcImg = cv::imread(locateFile(imageList[i], mParams.dataDirs));
 
-        
-        float* bbox = nmsedBoxes + keepTopK * i * 4;
-        float* score = nmsedScores + keepTopK * i;
-        float* classIndex = nmsedClasses + keepTopK * i;
 
         float scal_factor = mImgInfo.data()[i * 3 + 2];
         float origin_height = mImgInfo.data()[i * 3 + 0];
         float origin_width = mImgInfo.data()[i * 3 + 1];
 
-        for (int j = 0; j < numBoxes; ++j) // Show results
-        {   
+         std::vector<std::vector<LGT::spanner::BBox>>& bboxes = batched_bboxes[i];
 
-            auto x1 = *bbox / scal_factor;
-            auto y1 = *(bbox+1) / scal_factor;
-            auto x2 = *(bbox+2) / scal_factor;
-            auto y2 = *(bbox+3) / scal_factor;
+        for (int j = 0; j < numClasses; ++j) 
+        {  
+            std::vector<LGT::spanner::BBox>& class_bbox = bboxes[j]; 
 
-            //clamp
-            x1 = std::max(0.0f, x1);
-            y1 = std::max(0.0f, y1);
-            x2 = std::min(origin_width, x2);
-            y2 = std::min(origin_height, y2);
+            for (auto & ele: class_bbox)
+            {
+                auto x1 = ele.x1 / scal_factor;
+                auto y1 = ele.y1 / scal_factor;
+                auto x2 = ele.x2 / scal_factor;
+                auto y2 = ele.y2 / scal_factor;
 
-            const std::string storeName = classes[*classIndex] + "-" + std::to_string(*score) + ".jpg";
+                //右下角的点还要做一个clip
+                x2 = std::min(origin_width, x2);
+                y2 = std::min(origin_height, y2);
+                x1 = std::max(0.0f, x1);
+                y1 = std::max(0.0f, y1);
 
-            sample::gLogInfo << "Detected " << classes[*classIndex] << " in " << imageList[i] << " with confidence "
-                                << *score * 100.0f << "% "
-                                << " x1: "<<x1<<" y1: "<<y1<<" x2: "<<x2<<" y2: "<<y2<< std::endl;
+                sample::gLogInfo << "Detected " << classes[j] << " in " << imageList[i] << " with confidence "
+                                << ele.score * 100.0f << "% "<< " x1:"<<x1<<" y1:"<<y1<<" x2:"<<x2<<" y2:"<<y2<<std::endl;
 
-        
 
-            cv::rectangle(srcImg, cv::Point(x1, y1), cv::Point(x2, y2), cv::Scalar(255, 0, 0), 1, cv::LINE_8, 0);
+                cv::rectangle(srcImg, cv::Point(x1, y1), cv::Point(x2, y2), cv::Scalar(255, 0, 0), 1, cv::LINE_8, 0);
 
-            ostringstream oss;
-            oss<<std::setprecision(2)<<*score;
-            cv::putText(srcImg,classes[*classIndex]+":"+oss.str(),cv::Point(x1,y1),cv::FONT_HERSHEY_SIMPLEX,0.5,cv::Scalar(255,0,0),1,8);
-            
-
-            bbox +=  4;
-            score ++;
-            classIndex ++;
+                ostringstream oss;
+                oss<<std::setprecision(2)<<ele.score;
+                cv::putText(srcImg,classes[j]+":"+oss.str(),cv::Point(x1,y1),cv::FONT_HERSHEY_SIMPLEX,0.5,cv::Scalar(255,0,0),1,8);
+            } 
             
         }
         cv::imwrite(imageList[i], srcImg);

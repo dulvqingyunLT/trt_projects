@@ -69,7 +69,7 @@ static constexpr float img_mean[3]={103.53, 116.28, 123.675,};// BGR order
 static constexpr float img_std[3]={57.375, 57.12, 58.395 };// BGR order
 
 // static  std::vector<std::string> imageList = {"000000000285.jpg"};//测试用
-static  std::vector<std::string> imageList = {"000000397133.jpg"};//测试用
+static  std::vector<std::string> imageList = {"000000397133.jpg", "000000037777.jpg"};//测试用
 // static  std::vector<std::string> imageList = {"000000037777.jpg"};//测试用
 
 const std::vector<std::string> classes{
@@ -96,9 +96,17 @@ struct FasterRCNNParams : public samplesCommon::OnnxSampleParams
     int outputClsSize; //!< The number of output classes
     int nmsMaxOut;     //!< The maximum number of detection post-NMS
     std::string rcnnWeightsFile;
-    int roiCount; // proposal numbers
+    // int roiCount; // proposal numbers
+    bool saveEngine{false};
 };
 
+struct NMSParameters
+{
+    bool shareLocation;
+    int32_t backgroundLabelId, numClasses, topK, keepTopK;
+    float scoreThreshold, iouThreshold;
+    bool isNormalized;
+};
 
 class FasterRCNN
 {

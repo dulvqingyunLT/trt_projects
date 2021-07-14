@@ -24,11 +24,12 @@ RetinaNetParams initializeSampleParams(const samplesCommon::Args& args)
     {
         params.dataDirs = args.dataDirs;
     }
-    params.onnxFileName = "retinanet_new.onnx";
+    params.onnxFileName = "retinanet_101.onnx";
+    // params.onnxFileName = "retinanet_new.onnx";
     // params.onnxFileName = "retinanet_0630.onnx";
     // params.inputTensorNames.push_back("input");
     // params.inputTensorNames.push_back("im_info");
-    params.batchSize = 1;
+    params.batchSize = 8;
     // params.outputTensorNames.push_back("boxes");
     // params.outputTensorNames.push_back("scores");
     // params.outputTensorNames.push_back("rois");
@@ -39,8 +40,8 @@ RetinaNetParams initializeSampleParams(const samplesCommon::Args& args)
     // params.nmsMaxOut
     //     = 300; // This value needs to be changed as per the nmsMaxOut value set in RPROI plugin parameters in prototxt
 
-    params.int8 = false;
-    params.fp16 = true;
+    params.int8 = true;
+    params.fp16 = false;
     return params;
 }
 

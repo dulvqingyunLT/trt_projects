@@ -55,7 +55,7 @@ bool RetinaNet::build()
     if(mParams.saveEngine)
     {
 
-       std::ofstream p("RetinaNet.plan", std::ios::binary);
+       std::ofstream p("RetinaNet101.plan", std::ios::binary);
        if (!p)
        {
            return false;
@@ -101,7 +101,7 @@ bool RetinaNet::constructNetwork(SampleUniquePtr<nvonnxparser::IParser>& parser,
 
     profile->setDimensions(input->getName(), OptProfileSelector::kOPT, Dims4(8,3,inputSize,inputSize));
 
-    profile->setDimensions(input->getName(), OptProfileSelector::kMAX, Dims4(16,3,inputSize,inputSize));
+    profile->setDimensions(input->getName(), OptProfileSelector::kMAX, Dims4(mParams.batchSize,3,inputSize,inputSize));
     config->addOptimizationProfile(profile);
 
     std::unique_ptr<IInt8Calibrator> calibrator;

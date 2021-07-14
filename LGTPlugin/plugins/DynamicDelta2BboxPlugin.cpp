@@ -127,8 +127,8 @@ bool DynamicDelta2Bbox:: supportsFormatCombination(
             && in[1].format == PluginFormat::kLINEAR && consistentFloatPrecision;
 
     case 2:
-        return (in[1].type == DataType::kHALF || in[1].type == DataType::kFLOAT)
-            && in[1].format == PluginFormat::kLINEAR && consistentFloatPrecision;
+        return (out[0].type == DataType::kHALF || out[0].type == DataType::kFLOAT)
+            && out[0].format == PluginFormat::kLINEAR && consistentFloatPrecision;
             
     }
     return false;

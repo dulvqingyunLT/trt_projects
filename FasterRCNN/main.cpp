@@ -39,9 +39,10 @@ FasterRCNNParams initializeSampleParams(const samplesCommon::Args& args)
     // params.nmsMaxOut
     //     = 300; // This value needs to be changed as per the nmsMaxOut value set in RPROI plugin parameters in prototxt
     // params.roiCount = 1000;//36828;
-    params.int8 = true;
+    params.int8 = false;
     params.fp16 = false;
-    params.saveEngine = true;
+    params.saveEngine = false;
+    params.profile = false;
     return params;
 }
 

@@ -40,7 +40,7 @@ static constexpr    bool isNormalized = false;
 static constexpr    bool clipBoxes = false;
 static constexpr    int scoreBits = 16;
 
-static constexpr int inputSize = 384;
+static constexpr int inputSize = 800;
 // static constexpr float img_mean[3]={123.675, 116.28, 103.53};// BGR order
 // static constexpr float img_std[3]={58.395, 57.12, 57.375};// BGR order
 static constexpr float img_mean[3]={103.53, 116.28, 123.675,};// BGR order

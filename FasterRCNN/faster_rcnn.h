@@ -26,6 +26,7 @@
 
 #include "../LGTPlugin/plugins/DynamicPyramidROIAlignPlugin.h"
 #include "../LGTPlugin/plugins/DynamicDelta2BboxPlugin.h"
+#include "../LGTPlugin/plugins/DynamicSliceBackground.h"
 
 namespace LGT
 {
@@ -53,7 +54,7 @@ static constexpr    int bbox_backgroundLabelId = -1;
 static constexpr    int bbox_numClasses = 80;
 static constexpr    int bbox_topK = 1000;
 static constexpr    int bbox_keepTopK = 100;
-static constexpr    float bbox_scoreThreshold = 0.05;
+static constexpr    float bbox_scoreThreshold = 0.3;
 static constexpr    float bbox_iouThreshold = 0.5;
 static constexpr    bool bbox_isNormalized = false;
 static constexpr    bool bbox_clipBoxes = false;
@@ -98,6 +99,7 @@ struct FasterRCNNParams : public samplesCommon::OnnxSampleParams
     std::string rcnnWeightsFile;
     // int roiCount; // proposal numbers
     bool saveEngine{false};
+    bool profile{false};
 };
 
 struct NMSParameters

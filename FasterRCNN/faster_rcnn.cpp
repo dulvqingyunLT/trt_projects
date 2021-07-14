@@ -234,9 +234,30 @@ std::vector<ITensor*> FasterRCNN:: rcnnBuild(SampleUniquePtr<nvinfer1::INetworkD
     auto dim_output_softmax_layer = softmax_layer->getOutput(0)->getDimensions();
 
 
-    auto score_slice_layer_0 = network->addSlice(*softmax_layer->getOutput(0), Dims3{ 0, 0, 0},
+    // 用自定义plugin替代addSlice
+
+    // std::vector<PluginField> sliceBackgroundPlugin_attr;
+    
+    // auto pluginFC = new PluginFieldCollection();
+    // pluginFC->nbFields = sliceBackgroundPlugin_attr.size();
+    // pluginFC->fields = sliceBackgroundPlugin_attr.data();
+
+    // REGISTER_TENSORRT_PLUGIN(DynamicSliceBackgroundPluginCreator);
+
+    // auto creator = getPluginRegistry()->getPluginCreator("DynamicSliceBackground_TRT", "1");
+    // auto pluginObj = creator->createPlugin("SliceBackground",pluginFC); //自己给该layer取的名字
+
+    // ITensor* inputSliceBackgroundTensors[] = {softmax_layer->getOutput(0)};
+    
+
+    // IPluginV2Layer* score_slice_layer_0 = network->addPluginV2(inputSliceBackgroundTensors, 1, *pluginObj);
+    // auto dim_output_score_slice_layer_0 = score_slice_layer_0->getOutput(0)->getDimensions(); 
+
+    // // 用内建的slice，但是7.2.3.4版本中报错
+    ISliceLayer* score_slice_layer_0 = network->addSlice(*softmax_layer->getOutput(0), Dims3{ 0, 0, 0},
         Dims3{ mParams.batchSize, rpn_keepTopK, dim_output_softmax_layer.d[2]-1}, Dims3{ 1, 1, 1});
 
+    
 
     //output_bboxes (-1,1000,320,1,1)
     IFullyConnectedLayer* reg_layer = network->addFullyConnected(*relu_1_layer->getOutput(0),
@@ -395,6 +416,8 @@ bool FasterRCNN::constructNetwork(SampleUniquePtr<nvonnxparser::IParser>& parser
     profile->setDimensions(input->getName(), OptProfileSelector::kMAX, Dims4(16, 3, inputSize, inputSize));
     config->addOptimizationProfile(profile);
 
+
+
    if (mParams.fp16)
 
    {
@@ -467,14 +490,17 @@ bool FasterRCNN::infer()
     context_1->setBindingDimensions(0, Dims4(mParams.batchSize, mInputDims.d[1], mInputDims.d[2], mInputDims.d[3]));
 
     if (!context_1->allInputDimensionsSpecified())
-
     {
 
         return false;
 
     }
 
-
+    SimpleProfiler profiler("FasterRCNN performance");
+    if (mParams.profile)
+    {
+        context_1->setProfiler(&profiler);
+    }
 
     samplesCommon::BufferManager buffers(mEngine, mParams.batchSize,context_1.get());
 

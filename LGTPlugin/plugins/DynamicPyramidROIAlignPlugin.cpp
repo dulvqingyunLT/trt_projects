@@ -14,7 +14,7 @@ namespace
 const char* DYNAMICPYRAMIDROIALGIN_PLUGIN_VERSION{"1"};
 const char* DYNAMICPYRAMIDROIALGIN_PLUGIN_NAME{"DynamicPyramidROIAlign_TRT"};
 } // namespace
-// REGISTER_TENSORRT_PLUGIN(DynamicPyramidROIAlignPluginCreator);
+REGISTER_TENSORRT_PLUGIN(DynamicPyramidROIAlignPluginCreator);
 
 PluginFieldCollection DynamicPyramidROIAlignPluginCreator::mFC{};
 std::vector<PluginField> DynamicPyramidROIAlignPluginCreator::mPluginAttributes;

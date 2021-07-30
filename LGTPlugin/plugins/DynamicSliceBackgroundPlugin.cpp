@@ -1,6 +1,6 @@
 
 
-#include "DynamicSliceBackground.h"
+#include "DynamicSliceBackgroundPlugin.h"
 #include "../plugin.h"
 #include <cuda_runtime_api.h>
 

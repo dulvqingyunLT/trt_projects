@@ -14,7 +14,7 @@ namespace
 const char* DYNAMICPDELTA2BBOX_PLUGIN_VERSION{"1"};
 const char* DYNAMICPDELTA2BBOX_PLUGIN_NAME{"DynamicDelta2Bbox_TRT"};
 } // namespace
-// REGISTER_TENSORRT_PLUGIN(DynamicDelta2BboxPluginCreator);
+REGISTER_TENSORRT_PLUGIN(DynamicDelta2BboxPluginCreator);
 
 PluginFieldCollection DynamicDelta2BboxPluginCreator::mFC{};
 std::vector<PluginField> DynamicDelta2BboxPluginCreator::mPluginAttributes;

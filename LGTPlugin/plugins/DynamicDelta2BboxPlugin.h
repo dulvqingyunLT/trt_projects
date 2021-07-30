@@ -26,7 +26,7 @@ public:
 
     DynamicDelta2Bbox(const void* data, size_t length);
 
-    ~DynamicDelta2Bbox() override = default;
+    ~DynamicDelta2Bbox() noexcept override = default;
 
     // IPluginV2 methods    
     const char* getPluginType() const override;
@@ -90,7 +90,7 @@ class DynamicDelta2BboxPluginCreator : public BaseCreator
 public:
     DynamicDelta2BboxPluginCreator();
 
-    ~DynamicDelta2BboxPluginCreator(){};
+    ~DynamicDelta2BboxPluginCreator()noexcept override = default;
 
     const char* getPluginName() const override;
 

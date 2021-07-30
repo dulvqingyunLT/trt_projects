@@ -26,7 +26,7 @@
 
 #include "../LGTPlugin/plugins/DynamicPyramidROIAlignPlugin.h"
 #include "../LGTPlugin/plugins/DynamicDelta2BboxPlugin.h"
-#include "../LGTPlugin/plugins/DynamicSliceBackground.h"
+#include "../LGTPlugin/plugins/DynamicSliceBackgroundPlugin.h"
 
 namespace LGT
 {
@@ -40,8 +40,8 @@ static constexpr int inputSize = 384;
 static constexpr    bool rpn_shareLocation = false;
 static constexpr    int rpn_backgroundLabelId = -1;
 static constexpr    int rpn_numClasses = 1;
-static constexpr    int rpn_topK = 3600;
-static constexpr    int rpn_keepTopK = 1000;
+static constexpr    int rpn_topK = 1000;
+static constexpr    int rpn_keepTopK = 600;
 static constexpr    float rpn_scoreThreshold = 0.0;
 static constexpr    float rpn_iouThreshold = 0.7;
 static constexpr    bool rpn_isNormalized = false;
@@ -52,7 +52,7 @@ static constexpr    int rpn_scoreBits = 16;
 static constexpr    bool bbox_shareLocation = false;
 static constexpr    int bbox_backgroundLabelId = -1;
 static constexpr    int bbox_numClasses = 80;
-static constexpr    int bbox_topK = 1000;
+static constexpr    int bbox_topK = 300;
 static constexpr    int bbox_keepTopK = 100;
 static constexpr    float bbox_scoreThreshold = 0.3;
 static constexpr    float bbox_iouThreshold = 0.5;

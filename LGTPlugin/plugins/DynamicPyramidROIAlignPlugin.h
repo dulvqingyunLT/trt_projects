@@ -26,7 +26,7 @@ public:
 
     DynamicPyramidROIAlign(const void* data, size_t length);
 
-    ~DynamicPyramidROIAlign() override = default;
+    ~DynamicPyramidROIAlign() noexcept override = default; 
 
     // IPluginV2 methods    
     const char* getPluginType() const override;
@@ -93,7 +93,7 @@ class DynamicPyramidROIAlignPluginCreator : public BaseCreator
 public:
     DynamicPyramidROIAlignPluginCreator();
 
-    ~DynamicPyramidROIAlignPluginCreator(){};
+    ~DynamicPyramidROIAlignPluginCreator() noexcept override = default;
 
     const char* getPluginName() const override;
 

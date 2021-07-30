@@ -26,7 +26,7 @@ public:
 
     DynamicSliceBackground(const void* data, size_t length);
 
-    ~DynamicSliceBackground() override = default;
+    ~DynamicSliceBackground() noexcept override = default;
 
     // IPluginV2 methods    
     const char* getPluginType() const override;
@@ -90,7 +90,7 @@ class DynamicSliceBackgroundPluginCreator : public BaseCreator
 public:
     DynamicSliceBackgroundPluginCreator();
 
-    ~DynamicSliceBackgroundPluginCreator(){};
+    ~DynamicSliceBackgroundPluginCreator()noexcept override = default;
 
     const char* getPluginName() const override;
 

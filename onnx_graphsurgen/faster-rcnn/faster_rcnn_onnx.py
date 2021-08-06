@@ -64,7 +64,8 @@ def main():
                 outputs=[roi_align_out],
                 attrs={
                     'pooled_size':7,
-                    'input_size':input.shape[-1],
+                    'input_size_h':input.shape[-2],
+                    'input_size_w':input.shape[-1],
                 }
 
             )
@@ -98,13 +99,13 @@ def main():
 
     cls_num = tmp_fc_reg_weight.shape[0]//4
 
-    reshape_0_toshape = gs.Constant(name='reshape_0_toshape', values=np.array([-1, rpn_keepTopK, tmp_share_fc_0_weight.shape[1]], dtype=np.int64))
-    reshape_0_out = gs.Variable(name='reshape_0_out', dtype=np.float32, shape=(-1, rpn_keepTopK, tmp_share_fc_0_weight.shape[1])) #(-1, 1000, 12544)
-    reshape_node_0 = gs.Node(op='Reshape', inputs=[roi_align_out, reshape_0_toshape], outputs=[reshape_0_out])
-    graph.nodes.append(reshape_node_0)
-    # flatten_0_out = gs.Variable(name='flatten_0_out', dtype=np.float32, shape=(-1, rpn_keepTopK, tmp_share_fc_0_weight.shape[1])) #(-1, 1000, 12544)
-    # flatten_node_0 = gs.Node(op='Flatten', inputs=[roi_align_out], outputs=[flatten_0_out], attrs={'axis':2})
-    # graph.nodes.append(flatten_node_0)
+    # reshape_0_toshape = gs.Constant(name='reshape_0_toshape', values=np.array([-1, rpn_keepTopK, tmp_share_fc_0_weight.shape[1]], dtype=np.int64))
+    # reshape_0_out = gs.Variable(name='reshape_0_out', dtype=np.float32, shape=(-1, rpn_keepTopK, tmp_share_fc_0_weight.shape[1])) #(-1, 1000, 12544)
+    # reshape_node_0 = gs.Node(op='Reshape', inputs=[roi_align_out, reshape_0_toshape], outputs=[reshape_0_out])
+    # graph.nodes.append(reshape_node_0)
+    flatten_0_out = gs.Variable(name='flatten_0_out', dtype=np.float32, shape=(-1, rpn_keepTopK, tmp_share_fc_0_weight.shape[1])) #(-1, 1000, 12544)
+    flatten_node_0 = gs.Node(op='Flatten', inputs=[roi_align_out], outputs=[flatten_0_out], attrs={'axis':2})
+    graph.nodes.append(flatten_node_0)
     
     # graph.outputs = [flatten_0_out]
     # onnx.save(gs.export_onnx(graph), "./tools/onnx_graphsurgen/faster-rcnn/faster-rcnn_r50.onnx")
@@ -112,7 +113,7 @@ def main():
 
   
     share_fc_0_out = gs.Variable(name='share_fc_0_out', dtype=np.float32, shape=(-1, rpn_keepTopK, tmp_share_fc_0_weight.shape[0]))
-    share_fc_0_node = gs.Node(op='MatMul', inputs=[reshape_0_out, share_fc_0_weight], outputs=[share_fc_0_out])
+    share_fc_0_node = gs.Node(op='MatMul', inputs=[flatten_0_out, share_fc_0_weight], outputs=[share_fc_0_out])
     graph.nodes.append(share_fc_0_node)
     share_fc_0_bias_out = gs.Variable(name='share_fc_0_bias_out', dtype=np.float32, shape=(-1, rpn_keepTopK, tmp_share_fc_0_weight.shape[0]))
     share_fc_0_bias_node = gs.Node(op='Add', inputs=[share_fc_0_out, share_fc_0_bias], outputs=[share_fc_0_bias_out])
@@ -178,9 +179,7 @@ def main():
     graph.nodes.append(reshape_1_noe) 
 
 
-    # graph.outputs = [softmax_0_out,slice_0_out, fc_reg_bias_out]
-    # onnx.save(gs.export_onnx(graph), "./tools/onnx_graphsurgen/faster-rcnn/faster-rcnn_r50.onnx")
-    # return
+
 
 
     # decode:delta2bbox

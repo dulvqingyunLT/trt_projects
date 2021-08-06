@@ -22,7 +22,8 @@ std::vector<PluginField> DynamicPyramidROIAlignPluginCreator::mPluginAttributes;
 DynamicPyramidROIAlignPluginCreator::DynamicPyramidROIAlignPluginCreator()
 {
     mPluginAttributes.emplace_back(PluginField("pooled_size", nullptr, PluginFieldType::kINT32, 1));
-    mPluginAttributes.emplace_back(PluginField("input_size", nullptr, PluginFieldType::kINT32, 1));
+    mPluginAttributes.emplace_back(PluginField("input_size_h", nullptr, PluginFieldType::kINT32, 1));
+    mPluginAttributes.emplace_back(PluginField("input_size_w", nullptr, PluginFieldType::kINT32, 1));
 
     mFC.nbFields = mPluginAttributes.size();
     mFC.fields = mPluginAttributes.data();
@@ -54,13 +55,18 @@ IPluginV2DynamicExt* DynamicPyramidROIAlignPluginCreator::createPlugin(const cha
             assert(fields[i].type == PluginFieldType::kINT32);
             mPooledSize = *(static_cast<const int*>(fields[i].data));
         }
-        if (!strcmp(attrName, "input_size"))
+        if (!strcmp(attrName, "input_size_h"))
         {
             assert(fields[i].type == PluginFieldType::kINT32);
-            mInputSize = *(static_cast<const int*>(fields[i].data));
+            mInputSize_H = *(static_cast<const int*>(fields[i].data));
+        }
+        if (!strcmp(attrName, "input_size_w"))
+        {
+            assert(fields[i].type == PluginFieldType::kINT32);
+            mInputSize_W = *(static_cast<const int*>(fields[i].data));
         }
     }
-    return new DynamicPyramidROIAlign(mPooledSize, mInputSize);
+    return new DynamicPyramidROIAlign(mPooledSize, mInputSize_H, mInputSize_W);
 };
 
 IPluginV2DynamicExt* DynamicPyramidROIAlignPluginCreator::deserializePlugin(const char* name, const void* data, size_t length) noexcept
@@ -75,8 +81,8 @@ IPluginV2DynamicExt* DynamicPyramidROIAlignPluginCreator::deserializePlugin(cons
 
 //implementation of DynamicPyramidROIAlign
 
-DynamicPyramidROIAlign::DynamicPyramidROIAlign(int pooled_size, int input_size)
-    : mPooledSize({pooled_size, pooled_size}), mInputSize({input_size,input_size})
+DynamicPyramidROIAlign::DynamicPyramidROIAlign(int pooled_size, int input_size_h, int input_size_w)
+    : mPooledSize({pooled_size, pooled_size}), mInputSize({input_size_h,input_size_w})
 {
 
     assert(pooled_size > 0);

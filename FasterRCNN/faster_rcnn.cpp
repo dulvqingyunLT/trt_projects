@@ -142,7 +142,8 @@ std::vector<ITensor*>  FasterRCNN::roiAlignBuild(SampleUniquePtr<nvinfer1::INetw
     std::vector<PluginField> roialign_attr;
 
     roialign_attr.emplace_back(PluginField("pooled_size", &poolSize, PluginFieldType::kINT32, 1));
-    roialign_attr.emplace_back(PluginField("input_size", &inputSize, PluginFieldType::kINT32, 1));
+    roialign_attr.emplace_back(PluginField("input_size_h", &inputSize_H, PluginFieldType::kINT32, 1));
+    roialign_attr.emplace_back(PluginField("input_size_w", &inputSize_W, PluginFieldType::kINT32, 1));
 
     std::unique_ptr< PluginFieldCollection > pluginROIFC(new PluginFieldCollection());    
     // pluginFC = new PluginFieldCollection();
@@ -312,8 +313,8 @@ void FasterRCNN:: decodeRCNNOut(SampleUniquePtr<nvinfer1::INetworkDefinition>& n
  
     auto delta2bbox_creator = getPluginRegistry()->getPluginCreator("DynamicDelta2Bbox_TRT", "1");
     std::vector<PluginField> delta2bbox_attr;
-    delta2bbox_attr.emplace_back(PluginField("input_h", &inputSize, PluginFieldType::kINT32, 1));
-    delta2bbox_attr.emplace_back(PluginField("input_w", &inputSize, PluginFieldType::kINT32, 1));
+    delta2bbox_attr.emplace_back(PluginField("input_h", &inputSize_H, PluginFieldType::kINT32, 1));
+    delta2bbox_attr.emplace_back(PluginField("input_w", &inputSize_W, PluginFieldType::kINT32, 1));
 
 
     auto delta2bbox_pluginFC = new PluginFieldCollection();
@@ -409,11 +410,11 @@ bool FasterRCNN::constructNetwork(SampleUniquePtr<nvonnxparser::IParser>& parser
 
     //若要设置成支持动态尺寸，需要在pytorch导模型时进行设置。
 
-    profile->setDimensions(input->getName(), OptProfileSelector::kMIN, Dims4(1, 3, inputSize, inputSize));
+    profile->setDimensions(input->getName(), OptProfileSelector::kMIN, Dims4(1, 3, inputSize_H, inputSize_W));
 
-    profile->setDimensions(input->getName(), OptProfileSelector::kOPT, Dims4(8, 3, inputSize, inputSize));
-
-    profile->setDimensions(input->getName(), OptProfileSelector::kMAX, Dims4(16, 3, inputSize, inputSize));
+    profile->setDimensions(input->getName(), OptProfileSelector::kOPT, Dims4(8, 3, inputSize_H, inputSize_W));
+ 
+    profile->setDimensions(input->getName(), OptProfileSelector::kMAX, Dims4(16, 3, inputSize_H, inputSize_W));
     config->addOptimizationProfile(profile);
 
 
@@ -438,7 +439,7 @@ bool FasterRCNN::constructNetwork(SampleUniquePtr<nvonnxparser::IParser>& parser
         std::cout << "Your platform support int8: " << (builder->platformHasFastInt8() ? "true" : "false") << std::endl;
         assert(builder->platformHasFastInt8());
         config->setFlag(BuilderFlag::kINT8);
-        Int8EntropyCalibrator2* calibrator = new Int8EntropyCalibrator2(mParams.batchSize, inputSize, inputSize, "/home/ubuntu/data/coco/val2017/",
+        Int8EntropyCalibrator2* calibrator = new Int8EntropyCalibrator2(mParams.batchSize, inputSize_H, inputSize_W, "/home/ubuntu/data/coco/val2017/",
         "int8calib_fasterrcnn.table", input->getName());
         config->setInt8Calibrator(calibrator);   
 

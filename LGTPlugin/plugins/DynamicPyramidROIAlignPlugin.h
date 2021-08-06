@@ -22,7 +22,7 @@ namespace plugin
 class DynamicPyramidROIAlign : public IPluginV2DynamicExt
 {
 public:
-    DynamicPyramidROIAlign(int pooled_size, int input_size);
+    DynamicPyramidROIAlign(int pooled_size, int input_size_h, int input_size_w);
 
     DynamicPyramidROIAlign(const void* data, size_t length);
 
@@ -112,7 +112,8 @@ public:
 private:
     static PluginFieldCollection mFC;
     int mPooledSize;
-    int mInputSize;
+    int mInputSize_H;
+    int mInputSize_W;
     static std::vector<PluginField> mPluginAttributes;
 };
 } // namespace plugin

@@ -35,7 +35,8 @@ namespace LGT
 
 static constexpr int poolSize = 7;
 static constexpr int featureMapChannels = 256;
-static constexpr int inputSize = 384;
+static constexpr int inputSize_H = 384;
+static constexpr int inputSize_W = 384;
 
 static constexpr    bool rpn_shareLocation = false;
 static constexpr    int rpn_backgroundLabelId = -1;

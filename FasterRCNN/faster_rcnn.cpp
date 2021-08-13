@@ -439,7 +439,7 @@ bool FasterRCNN::constructNetwork(SampleUniquePtr<nvonnxparser::IParser>& parser
         std::cout << "Your platform support int8: " << (builder->platformHasFastInt8() ? "true" : "false") << std::endl;
         assert(builder->platformHasFastInt8());
         config->setFlag(BuilderFlag::kINT8);
-        Int8EntropyCalibrator2* calibrator = new Int8EntropyCalibrator2(mParams.batchSize, inputSize_H, inputSize_W, "/home/ubuntu/data/coco/val2017/",
+        Int8EntropyCalibrator2* calibrator = new Int8EntropyCalibrator2(mParams.batchSize, inputSize_W, inputSize_H, "/home/ubuntu/data/coco/val2017/",
         "int8calib_fasterrcnn.table", input->getName());
         config->setInt8Calibrator(calibrator);   
 
